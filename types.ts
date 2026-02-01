@@ -36,4 +36,5 @@ export interface AppState {
   currentExerciseIndex: number;
   lessons: Lesson[];
   isGenerating: boolean;
+  apiKey: string;
 }

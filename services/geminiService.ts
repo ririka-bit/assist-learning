@@ -3,11 +3,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AiGeneratedContent } from "../types";
 
 export const generateLessonContent = async (
+  apiKey: string,
   title: string,
   driveUrl: string,
   images: string[]
 ): Promise<AiGeneratedContent> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Use the provided apiKey for initialization
+  const ai = new GoogleGenAI({ apiKey });
   
   const prompt = `
     以下の授業資料をもとに、授業内容を自動で文字起こし・解析し、休んだ生徒が内容を理解できるように情報を整理してください。

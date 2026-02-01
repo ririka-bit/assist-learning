@@ -11,12 +11,15 @@ import {
   Loader2,
   Trash2,
   Image as ImageIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Key as KeyIcon,
+  Settings
 } from 'lucide-react';
 import { AppView, Lesson, Exercise, AppState } from './types';
 import { generateLessonContent } from './services/geminiService';
 
 const STORAGE_KEY = 'assist_learning_lessons';
+const API_KEY_STORAGE = 'assist_learning_api_key';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -25,22 +28,30 @@ const App: React.FC = () => {
     currentExerciseIndex: 0,
     lessons: [],
     isGenerating: false,
+    apiKey: '',
   });
 
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setState(prev => ({ ...prev, lessons: JSON.parse(saved) }));
-      } catch (e) {
-        console.error("Failed to parse lessons", e);
-      }
-    }
+    const savedLessons = localStorage.getItem(STORAGE_KEY);
+    const savedApiKey = localStorage.getItem(API_KEY_STORAGE);
+    
+    setState(prev => ({
+      ...prev,
+      lessons: savedLessons ? JSON.parse(savedLessons) : [],
+      apiKey: savedApiKey || '',
+    }));
   }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lessons));
   }, [state.lessons]);
+
+  const updateApiKey = (key: string) => {
+    setState(prev => ({ ...prev, apiKey: key }));
+    localStorage.setItem(API_KEY_STORAGE, key);
+  };
 
   const currentLesson = state.lessons.find(l => l.id === state.currentLessonId);
 
@@ -56,14 +67,21 @@ const App: React.FC = () => {
   };
 
   const handleUpload = async (title: string, driveUrl: string, images: string[]) => {
+    if (!state.apiKey) {
+      alert("授業を解析するにはAPIキーの設定が必要です。TOP画面で設定してください。");
+      setShowApiKeyInput(true);
+      navigateTo('TOP');
+      return;
+    }
+
     setState(prev => ({ ...prev, isGenerating: true }));
     try {
-      const aiData = await generateLessonContent(title, driveUrl, images);
+      const aiData = await generateLessonContent(state.apiKey, title, driveUrl, images);
       const newLesson: Lesson = {
         id: `lesson-${Date.now()}`,
         title,
         date: new Date().toLocaleDateString('ja-JP'),
-        transcription: driveUrl, // URLを保存
+        transcription: driveUrl,
         images,
         aiData
       };
@@ -75,7 +93,7 @@ const App: React.FC = () => {
       }));
     } catch (error) {
       console.error("Content generation failed", error);
-      alert("AIによる解析に失敗しました。正しいURLかどうか確認し、もう一度試してください。");
+      alert("AIによる解析に失敗しました。APIキーが正しいか、URLが公開設定になっているか確認してください。");
       setState(prev => ({ ...prev, isGenerating: false }));
     }
   };
@@ -94,35 +112,73 @@ const App: React.FC = () => {
     switch (state.view) {
       case 'TOP':
         return (
-          <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 space-y-8 animate-in fade-in duration-500">
+          <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 py-8 space-y-8 animate-in fade-in duration-500">
             <div className="text-center space-y-4">
               <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-indigo-200">
                 <BookOpen className="w-10 h-10 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-slate-800">アシスト・ラーニング</h1>
+              <h1 className="text-3xl font-bold text-slate-800 tracking-tight">アシスト・ラーニング</h1>
               <p className="text-slate-500 max-w-sm">授業を休んでも大丈夫。AIがあなたの学習を強力にサポートします。</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
-              <button 
-                onClick={() => navigateTo('UPLOAD')}
-                className="flex flex-col items-center p-8 bg-white border-2 border-dashed border-indigo-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
-              >
-                <div className="p-4 bg-indigo-100 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                  <Upload className="w-8 h-8 text-indigo-600" />
-                </div>
-                <span className="text-lg font-bold text-slate-700">授業をアップロードする</span>
-                <span className="text-xs text-slate-400 mt-2">先生向け：DriveのURLや画像</span>
-              </button>
-              <button 
-                onClick={() => navigateTo('LIST')}
-                className="flex flex-col items-center p-8 bg-white border-2 border-indigo-100 rounded-2xl hover:border-indigo-400 hover:shadow-lg transition-all group"
-              >
-                <div className="p-4 bg-emerald-100 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                  <List className="w-8 h-8 text-emerald-600" />
-                </div>
-                <span className="text-lg font-bold text-slate-700">要約・例題を見る</span>
-                <span className="text-xs text-slate-400 mt-2">生徒向け：学習の再開</span>
-              </button>
+
+            <div className="w-full max-w-lg space-y-4">
+              {/* API Key Section */}
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <button 
+                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <KeyIcon className={`w-5 h-5 ${state.apiKey ? 'text-emerald-500' : 'text-slate-400'}`} />
+                    <span className="font-bold text-slate-700">Gemini APIキーの設定</span>
+                  </div>
+                  <Settings className={`w-5 h-5 text-slate-400 transition-transform ${showApiKeyInput ? 'rotate-90' : ''}`} />
+                </button>
+                {showApiKeyInput && (
+                  <div className="px-6 pb-6 pt-2 animate-in slide-in-from-top-2 duration-200">
+                    <input 
+                      type="password"
+                      value={state.apiKey}
+                      onChange={(e) => updateApiKey(e.target.value)}
+                      placeholder="AIZA..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono text-sm"
+                    />
+                    <p className="mt-3 text-xs text-slate-400 leading-relaxed">
+                      GitHub Pagesなどの公開環境で使用するため、ご自身のGemini APIキーを入力してください。キーはブラウザにのみ保存されます。
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button 
+                  onClick={() => {
+                    if (!state.apiKey) {
+                      alert("授業をアップロードするには、まずAPIキーを設定してください。");
+                      setShowApiKeyInput(true);
+                      return;
+                    }
+                    navigateTo('UPLOAD');
+                  }}
+                  className="flex flex-col items-center p-6 bg-white border-2 border-dashed border-indigo-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
+                >
+                  <div className="p-3 bg-indigo-100 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <Upload className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <span className="font-bold text-slate-700">授業をアップロード</span>
+                  <span className="text-xs text-slate-400 mt-1">先生向け</span>
+                </button>
+                <button 
+                  onClick={() => navigateTo('LIST')}
+                  className="flex flex-col items-center p-6 bg-white border-2 border-indigo-100 rounded-2xl hover:border-indigo-400 hover:shadow-lg transition-all group"
+                >
+                  <div className="p-3 bg-emerald-100 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <List className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <span className="font-bold text-slate-700">要約・例題を見る</span>
+                  <span className="text-xs text-slate-400 mt-1">生徒向け</span>
+                </button>
+              </div>
             </div>
           </div>
         );
