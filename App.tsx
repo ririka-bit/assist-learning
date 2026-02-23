@@ -117,7 +117,7 @@ const App: React.FC = () => {
               <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-indigo-200">
                 <BookOpen className="w-10 h-10 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-slate-800 tracking-tight">アシスト・ラーニング</h1>
+              <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Catch Buddy</h1>
               <p className="text-slate-500 max-w-sm">授業を休んでも大丈夫。AIがあなたの学習を強力にサポートします。</p>
             </div>
 
@@ -396,7 +396,7 @@ const App: React.FC = () => {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform">
               <BookOpen className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-slate-800 tracking-tight">アシスト・ラーニング</span>
+            <span className="font-bold text-slate-800 tracking-tight">Catch Buddy</span>
           </button>
         </div>
       </nav>
