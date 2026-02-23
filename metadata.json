@@ -1,5 +1,5 @@
 {
-  "name": "アシスト・ラーニング",
+  "name": "Catch Buddy",
   "description": "授業を休んだ生徒のための、AIを活用した学習支援アプリ。先生が授業内容をアップロードすると、AIが要約と例題を自動作成します。",
   "requestFramePermissions": [
     "camera"
